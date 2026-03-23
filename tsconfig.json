@@ -1,7 +1,23 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ]
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "outDir": "./dist",
+    "rootDir": "./",
+    "types": ["node", "mocha", "chai"],
+    "typeRoots": ["./node_modules/@types", "./src/typechain-types"]
+  },
+  "include": [
+    "./src/test",
+    "./src/scripts",
+    "./src/typechain-types"
+  ],
+  "exclude": ["node_modules", "dist", "cache", "./src/artifacts"],
+  "files": ["./hardhat.config.ts"],
 }
