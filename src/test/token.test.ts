@@ -10,13 +10,13 @@ describe("MyToken", function () {
     const MyToken = await ethers.getContractFactory("MyToken");
     const myToken = await MyToken.deploy(1000000);
     await myToken.waitForDeployment();
-    
+
     const address = await myToken.getAddress();
-    expect(address).to.properAddress;
-    
+    expect(address).to.be.a.properAddress;
+
     const name = await myToken.name();
     expect(name).to.equal("MyToken");
-    
+
     const symbol = await myToken.symbol();
     expect(symbol).to.equal("MTK");
   });
