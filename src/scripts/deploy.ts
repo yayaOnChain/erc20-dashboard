@@ -1,6 +1,5 @@
 import { ethers } from "hardhat";
 import fs from "fs";
-import path from "path";
 
 async function main() {
   const initialSupply = 1000000; // 1 million tokens
@@ -17,15 +16,17 @@ async function main() {
   console.log(`MyToken deployed to: ${address}`);
 
   // Save address to a file for frontend use
-  const contractInfo = {
+  const contractAddress = {
     address: address,
-    network: "hardhat",
-    chainId: 31337,
+    network: "sepolia",
+    chainId: 11155111,
   };
 
-  const outputPath = path.join(__dirname, "../utils/contractInfo.json");
-  fs.writeFileSync(outputPath, JSON.stringify(contractInfo, null, 2));
-  console.log(`Contract info saved to: ${outputPath}`);
+  fs.writeFileSync(
+    "../../contract-address.json",
+    JSON.stringify(contractAddress, null, 2)
+  );
+  console.log("\n💾 Contract address saved to contract-address.json");
 }
 
 main().catch((error) => {
