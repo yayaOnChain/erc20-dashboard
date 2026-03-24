@@ -1,7 +1,5 @@
-import contractData from "./contractInfo.json";
-
-export const CONTRACT_ADDRESS = contractData.address || "0x0000000000000000000000000000000000000000";
-export const CONTRACT_CHAIN_ID = contractData.chainId || 31337;
+export const CONTRACT_ADDRESS = process.env.VITE_CONTRACT_ADDRESS;
+export const CONTRACT_CHAIN_ID = process.env.VITE_CONTRACT_CHAIN_ID;
 
 export const CONTRACT_ABI = [
   {
