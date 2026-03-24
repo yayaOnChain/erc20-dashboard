@@ -9,6 +9,7 @@ export default defineConfig({
     tailwindcss(),
   ],
   define: {
-    'process.env': process.env,
+    'process.env.VITE_CONTRACT_ADDRESS': JSON.stringify(process.env.VITE_CONTRACT_ADDRESS || ''),
+    'process.env.VITE_CONTRACT_CHAIN_ID': JSON.stringify(process.env.VITE_CONTRACT_CHAIN_ID || ''),
   },
 })
