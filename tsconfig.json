@@ -11,12 +11,14 @@
     "outDir": "./dist",
     "rootDir": "./",
     "types": ["node", "mocha", "chai"],
-    "typeRoots": ["./node_modules/@types", "./src/typechain-types"]
+    "typeRoots": ["./node_modules/@types", "./src/typechain-types"],
+    "jsx": "react-jsx"
   },
   "include": [
     "./src/test",
     "./src/scripts",
-    "./src/typechain-types"
+    "./src/typechain-types",
+    "./src/frontend"
   ],
   "exclude": ["node_modules", "dist", "cache", "./src/artifacts"],
   "files": ["./hardhat.config.ts"],
