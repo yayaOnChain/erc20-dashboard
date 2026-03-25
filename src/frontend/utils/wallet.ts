@@ -36,13 +36,14 @@ export const connectWallet = async (): Promise<{
       address: accounts[0],
       chainId,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { message?: string };
     return {
       provider: null,
       signer: null,
       address: null,
       chainId: null,
-      error: error.message || "Failed to connect wallet",
+      error: err.message || "Failed to connect wallet",
     };
   }
 };
@@ -52,6 +53,9 @@ export const getTokenBalance = async (
   address: string
 ): Promise<string> => {
   try {
+    if (!CONTRACT_ADDRESS) {
+      throw new Error("Contract address not configured");
+    }
     const contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
     const balance = await contract.balanceOf(address);
     const decimals = await contract.decimals();
@@ -79,6 +83,9 @@ export const getTokenInfo = async (
   provider: BrowserProvider
 ): Promise<{ symbol: string; name: string; decimals: number }> => {
   try {
+    if (!CONTRACT_ADDRESS) {
+      throw new Error("Contract address not configured");
+    }
     const contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
     const symbol = await contract.symbol();
     const name = await contract.name();
@@ -95,6 +102,9 @@ export const transferTokens = async (
   amount: string
 ): Promise<{ success: boolean; hash?: string; error?: string }> => {
   try {
+    if (!CONTRACT_ADDRESS) {
+      throw new Error("Contract address not configured");
+    }
     const contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
     const decimals = await contract.decimals();
     const amountInWei = parseUnits(amount, decimals);
@@ -103,9 +113,10 @@ export const transferTokens = async (
     await tx.wait();
 
     return { success: true, hash: tx.hash };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { message?: string };
     console.error("Error transferring tokens:", error);
-    return { success: false, error: error.message || "Transfer failed" };
+    return { success: false, error: err.message || "Transfer failed" };
   }
 };
 
@@ -120,10 +131,11 @@ export const switchNetwork = async (chainId: number): Promise<{ success: boolean
       params: [{ chainId: `0x${chainId.toString(16)}` }],
     });
     return { success: true };
-  } catch (error: any) {
-    if (error.code === 4902) {
+  } catch (error: unknown) {
+    const err = error as { code?: number; message?: string };
+    if (err.code === 4902) {
       return { success: false, error: "Network not added to MetaMask" };
     }
-    return { success: false, error: error.message || "Failed to switch network" };
+    return { success: false, error: err.message || "Failed to switch network" };
   }
 };
