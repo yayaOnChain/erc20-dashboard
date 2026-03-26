@@ -25,6 +25,8 @@
     "@nomicfoundation/hardhat-chai-matchers": "^2.1.2",
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
     "@openzeppelin/contracts": "^5.4.0",
+    "@typechain/ethers-v6": "^0.5.1",
+    "@typechain/hardhat": "^9.1.0",
     "@types/chai": "^5.2.3",
     "@types/mocha": "^10.0.0",
     "@types/node": "^24.10.1",
@@ -40,6 +42,7 @@
     "globals": "^17.4.0",
     "hardhat": "^2.22.0",
     "ts-node": "^10.9.2",
+    "typechain": "^8.3.2",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
     "vite": "^7.3.1"
