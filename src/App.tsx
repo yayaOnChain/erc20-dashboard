@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ConnectWallet, BalanceDisplay, TransferForm, NetworkDetector } from "./frontend/components";
 import { connectWallet, getTokenBalance, getETHBalance, getTokenInfo, transferTokens, switchNetwork } from "./frontend/utils/wallet";
 import type { WalletState } from "./frontend/utils/wallet";
+import type { BrowserProvider } from "ethers";
 
 function App() {
   const [walletState, setWalletState] = useState<WalletState>({
@@ -16,7 +17,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const updateWalletInfo = useCallback(async (provider: any, address: string, chainId: number) => {
+  const updateWalletInfo = useCallback(async (provider: BrowserProvider, address: string, chainId: number) => {
     setIsLoading(true);
     try {
       const [ethBalance, tokenBalance, tokenInfo] = await Promise.all([
@@ -123,26 +124,26 @@ function App() {
         setWalletState((prev) => ({ ...prev, chainId: chainIdNum }));
       };
 
-      window.ethereum.on("accountsChanged", handleAccountsChanged);
-      window.ethereum.on("chainChanged", handleChainChanged);
+      window.ethereum.on("accountsChanged", handleAccountsChanged as (...args: unknown[]) => void);
+      window.ethereum.on("chainChanged", handleChainChanged as (...args: unknown[]) => void);
 
       return () => {
         if (window.ethereum) {
-          window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
-          window.ethereum.removeListener("chainChanged", handleChainChanged);
+          window.ethereum.removeListener("accountsChanged", handleAccountsChanged as (...args: unknown[]) => void);
+          window.ethereum.removeListener("chainChanged", handleChainChanged as (...args: unknown[]) => void);
         }
       };
     }
   }, [walletState.isConnected, walletState.address]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-linear-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 3.01 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.29-.72-2.38-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-3.01 0-1.96-1.61-2.67-3.66-3.18z"/>
                 </svg>
@@ -182,7 +183,7 @@ function App() {
 
         {!walletState.isConnected ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mb-6">
+            <div className="w-24 h-24 bg-linear-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mb-6">
               <svg className="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
