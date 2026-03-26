@@ -22,7 +22,10 @@ export const ConnectWallet: React.FC<ConnectWalletProps> = ({
       {isConnected && address ? (
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 rounded-lg">
-            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            <span
+              data-testid="status-indicator"
+              className="w-2 h-2 bg-green-500 rounded-full animate-pulse"
+            ></span>
             <span className="font-mono text-sm">{formatAddress(address)}</span>
           </div>
           <button
