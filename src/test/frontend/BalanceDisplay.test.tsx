@@ -107,14 +107,14 @@ describe('BalanceDisplay', () => {
   it('should have proper card styling for ETH balance', () => {
     const { container } = render(<BalanceDisplay {...mockProps} />);
     
-    const ethCard = container.querySelector('.bg-gradient-to-br.from-blue-50');
+    const ethCard = container.querySelector('.bg-linear-to-br.from-blue-50');
     expect(ethCard).toBeInTheDocument();
   });
 
   it('should have proper card styling for token balance', () => {
     const { container } = render(<BalanceDisplay {...mockProps} />);
     
-    const tokenCard = container.querySelector('.bg-gradient-to-br.from-purple-50');
+    const tokenCard = container.querySelector('.bg-linear-to-br.from-purple-50');
     expect(tokenCard).toBeInTheDocument();
   });
 });
