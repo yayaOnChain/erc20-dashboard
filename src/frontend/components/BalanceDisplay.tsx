@@ -18,7 +18,7 @@ export const BalanceDisplay: React.FC<BalanceDisplayProps> = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* ETH Balance Card */}
-      <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl shadow-md border border-blue-200">
+      <div className="bg-linear-to-br from-blue-50 to-blue-100 p-6 rounded-xl shadow-md border border-blue-200">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
             <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -40,7 +40,7 @@ export const BalanceDisplay: React.FC<BalanceDisplayProps> = ({
       </div>
 
       {/* Token Balance Card */}
-      <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl shadow-md border border-purple-200">
+      <div className="bg-linear-to-br from-purple-50 to-purple-100 p-6 rounded-xl shadow-md border border-purple-200">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
             <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
