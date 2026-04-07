@@ -13,7 +13,7 @@
     "test:frontend": "vitest run",
     "test:frontend:watch": "vitest",
     "test:ui": "vitest --ui",
-    "deploy:local": "npx hardhat run src/scripts/deploy.ts --network hardhat",
+    "deploy:local": "npx hardhat run src/scripts/deploy.ts --network localhost",
     "deploy:sepolia": "npx hardhat run src/scripts/deploy.ts --network sepolia",
     "node": "npx hardhat node"
   },
