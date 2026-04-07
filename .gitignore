@@ -42,4 +42,4 @@ dist-ssr
 ignition/deployments/chain-31337
 
 # Contract address
-contract-address.json
+contract-address-*.json
