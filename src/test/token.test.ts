@@ -1,7 +1,7 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { MyToken, MyToken__factory } from "../typechain-types";
+import hre from "hardhat";
 
 describe("MyToken", function () {
   let myToken: MyToken;
@@ -14,8 +14,8 @@ describe("MyToken", function () {
   const initialSupply = 1000000;
 
   beforeEach(async function () {
-    const MyTokenFactory = await ethers.getContractFactory("MyToken") as MyToken__factory;
-    [owner, addr1, addr2] = await ethers.getSigners();
+    const MyTokenFactory = await hre.ethers.getContractFactory("MyToken") as MyToken__factory;
+    [owner, addr1, addr2] = await hre.ethers.getSigners();
     ownerAddress = await owner.getAddress();
     addr1Address = await addr1.getAddress();
     addr2Address = await addr2.getAddress();
@@ -161,7 +161,7 @@ describe("MyToken", function () {
       const zeroAddress = "0x0000000000000000000000000000000000000000";
       await expect(myToken.connect(owner).transfer(zeroAddress, BigInt(transferAmount) * BigInt(10 ** 18)))
         .to.be.revertedWithCustomError(myToken, "ERC20InvalidReceiver")
-        .withArgs(ethers.ZeroAddress);
+        .withArgs(hre.ethers.ZeroAddress);
     });
 
     it("Should revert if transferring from zero address", async function () {
@@ -223,7 +223,7 @@ describe("MyToken", function () {
 
     it("Should allow owner to renounce ownership", async function () {
       await myToken.connect(owner).renounceOwnership();
-      expect(await myToken.owner()).to.equal(ethers.ZeroAddress);
+      expect(await myToken.owner()).to.equal(hre.ethers.ZeroAddress);
     });
 
     it("Should allow owner to transfer ownership", async function () {
