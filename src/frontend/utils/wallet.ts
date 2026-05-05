@@ -37,13 +37,21 @@ export const connectWallet = async (): Promise<{
       chainId,
     };
   } catch (error: unknown) {
-    const err = error as { message?: string };
+    const err = error as { code?: string | number; message?: string; info?: { error?: { code?: number; message?: string } } };
+    let errorMessage = "Failed to connect wallet";
+
+    if (err.code === "ACTION_REJECTED" || err.code === 4001 || (err.info && err.info.error && err.info.error.code === 4001)) {
+      errorMessage = "Connection request rejected. Please approve the connection in your wallet.";
+    } else if (err.message) {
+      errorMessage = err.message;
+    }
+
     return {
       provider: null,
       signer: null,
       address: null,
       chainId: null,
-      error: err.message || "Failed to connect wallet",
+      error: errorMessage,
     };
   }
 };
