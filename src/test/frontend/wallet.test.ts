@@ -27,6 +27,18 @@ describe('wallet utilities', () => {
       expect(result.address).toBeNull();
       expect(result.chainId).toBeNull();
     });
+
+    it('should handle user rejection error properly', async () => {
+      // Mock window.ethereum to reject the request
+      (window as unknown as Record<string, unknown>).ethereum = {
+        request: vi.fn().mockRejectedValue({ code: 4001 }),
+      };
+
+      const result = await connectWallet();
+
+      expect(result.error).toBe('Connection request rejected. Please approve the connection in your wallet.');
+      expect(result.provider).toBeNull();
+    });
   });
 
   describe('switchNetwork', () => {
