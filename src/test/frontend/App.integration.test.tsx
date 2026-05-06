@@ -22,16 +22,24 @@ describe('App Integration Tests', () => {
   const mockTransferTokens = vi.mocked(walletUtils.transferTokens);
   const mockSwitchNetwork = vi.mocked(walletUtils.switchNetwork);
 
+  const STORAGE_KEY = "erc20wallet_address";
+  const DISCONNECT_FLAG_KEY = "erc20wallet_disconnected";
+
+  const mockEthereum = {
+    on: vi.fn(),
+    removeListener: vi.fn(),
+    request: vi.fn(),
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
-    (window as unknown as Record<string, unknown>).ethereum = {
-      on: vi.fn(),
-      removeListener: vi.fn(),
-    };
+    localStorage.clear();
+    (window as unknown as Record<string, unknown>).ethereum = mockEthereum;
   });
 
   afterEach(() => {
     delete (window as unknown as Record<string, unknown>).ethereum;
+    localStorage.clear();
   });
 
   it('should show initial state with connect wallet prompt', () => {
@@ -382,5 +390,136 @@ describe('App Integration Tests', () => {
     await waitFor(() => {
       expect(mockGetTokenBalance).toHaveBeenCalledTimes(2);
     });
+  });
+
+  it('should not auto-reconnect after explicit disconnect', async () => {
+    mockConnectWallet.mockResolvedValue({
+      provider: {} as import('ethers').BrowserProvider,
+      signer: {} as import('ethers').Signer,
+      address: '0x1234567890abcdef1234567890abcdef12345678',
+      chainId: 31337,
+    });
+
+    mockGetETHBalance.mockResolvedValue('1.5');
+    mockGetTokenBalance.mockResolvedValue('1000');
+    mockGetTokenInfo.mockResolvedValue({
+      symbol: 'MTK',
+      name: 'MyToken',
+      decimals: 18,
+    });
+
+    render(<App />);
+
+    const connectButtons = screen.getAllByText('Connect Wallet');
+    fireEvent.click(connectButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('1.5000 ETH')).toBeInTheDocument();
+    });
+
+    const disconnectButton = screen.getByRole('button', { name: /disconnect/i });
+    fireEvent.click(disconnectButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Connect Your Wallet')).toBeInTheDocument();
+    });
+
+    expect(localStorage.getItem(DISCONNECT_FLAG_KEY)).toBe('1');
+
+    vi.clearAllMocks();
+    render(<App />);
+
+    expect(screen.queryAllByText('Connect Your Wallet').length).toBeGreaterThan(0);
+    expect(mockConnectWallet).not.toHaveBeenCalled();
+  });
+
+  it('should clear disconnect flag when connecting again after disconnect', async () => {
+    localStorage.setItem(DISCONNECT_FLAG_KEY, '1');
+
+    mockConnectWallet.mockResolvedValue({
+      provider: {} as import('ethers').BrowserProvider,
+      signer: {} as import('ethers').Signer,
+      address: '0x1234567890abcdef1234567890abcdef12345678',
+      chainId: 31337,
+    });
+
+    mockGetETHBalance.mockResolvedValue('1.5');
+    mockGetTokenBalance.mockResolvedValue('1000');
+    mockGetTokenInfo.mockResolvedValue({
+      symbol: 'MTK',
+      name: 'MyToken',
+      decimals: 18,
+    });
+
+    render(<App />);
+
+    const connectButtons = screen.getAllByText('Connect Wallet');
+    fireEvent.click(connectButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('1.5000 ETH')).toBeInTheDocument();
+    });
+
+    expect(localStorage.getItem(DISCONNECT_FLAG_KEY)).toBeNull();
+  });
+
+  it('should persist address in localStorage after successful connection', async () => {
+    mockConnectWallet.mockResolvedValue({
+      provider: {} as import('ethers').BrowserProvider,
+      signer: {} as import('ethers').Signer,
+      address: '0x1234567890abcdef1234567890abcdef12345678',
+      chainId: 31337,
+    });
+
+    mockGetETHBalance.mockResolvedValue('1.5');
+    mockGetTokenBalance.mockResolvedValue('1000');
+    mockGetTokenInfo.mockResolvedValue({
+      symbol: 'MTK',
+      name: 'MyToken',
+      decimals: 18,
+    });
+
+    render(<App />);
+
+    const connectButtons = screen.getAllByText('Connect Wallet');
+    fireEvent.click(connectButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('1.5000 ETH')).toBeInTheDocument();
+    });
+
+    expect(localStorage.getItem(STORAGE_KEY)).toBe('0x1234567890abcdef1234567890abcdef12345678');
+  });
+
+  it('should auto-reconnect on page reload if previously connected without explicit disconnect', async () => {
+    mockConnectWallet.mockResolvedValue({
+      provider: {} as import('ethers').BrowserProvider,
+      signer: {} as import('ethers').Signer,
+      address: '0x1234567890abcdef1234567890abcdef12345678',
+      chainId: 31337,
+    });
+
+    mockGetETHBalance.mockResolvedValue('1.5');
+    mockGetTokenBalance.mockResolvedValue('1000');
+    mockGetTokenInfo.mockResolvedValue({
+      symbol: 'MTK',
+      name: 'MyToken',
+      decimals: 18,
+    });
+
+    vi.clearAllMocks();
+
+    localStorage.setItem(STORAGE_KEY, '0x1234567890abcdef1234567890abcdef12345678');
+
+    const mockEth = window.ethereum as unknown as { request: ReturnType<typeof vi.fn> };
+    mockEth.request = vi.fn().mockResolvedValue(['0x1234567890abcdef1234567890abcdef12345678']);
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('1.5000 ETH')).toBeInTheDocument();
+    });
+
+    expect(mockConnectWallet).toHaveBeenCalled();
   });
 });
