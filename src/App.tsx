@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { ConnectWallet, BalanceDisplay, TransferForm, NetworkDetector } from "./frontend/components";
 import { connectWallet, getTokenBalance, getETHBalance, getTokenInfo, transferTokens, switchNetwork } from "./frontend/utils/wallet";
 import type { WalletState } from "./frontend/utils/wallet";
@@ -16,6 +16,52 @@ function App() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const updateWalletInfoRef = useRef<(provider: BrowserProvider, address: string, chainId: number) => Promise<void>>(null!);
+  const handleDisconnectRef = useRef<() => void>(null!);
+  const STORAGE_KEY = "erc20wallet_address";
+  const DISCONNECT_FLAG_KEY = "erc20wallet_disconnected";
+
+  const setStoredAddress = (address: string | null) => {
+    try {
+      if (address) {
+        localStorage.setItem(STORAGE_KEY, address);
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    } catch {
+      // localStorage unavailable
+    }
+  };
+
+  const getStoredAddress = (): string | null => {
+    try {
+      return localStorage.getItem(STORAGE_KEY);
+    } catch {
+      // localStorage unavailable
+      return null;
+    }
+  };
+
+  const setDisconnectedFlag = (value: boolean) => {
+    try {
+      if (value) {
+        localStorage.setItem(DISCONNECT_FLAG_KEY, "1");
+      } else {
+        localStorage.removeItem(DISCONNECT_FLAG_KEY);
+      }
+    } catch {
+      // localStorage unavailable
+    }
+  };
+
+  const wasExplicitlyDisconnected = (): boolean => {
+    try {
+      return localStorage.getItem(DISCONNECT_FLAG_KEY) === "1";
+    } catch {
+      return false;
+    }
+  };
 
   const updateWalletInfo = useCallback(async (provider: BrowserProvider, address: string, chainId: number) => {
     setIsLoading(true);
@@ -42,8 +88,37 @@ function App() {
     }
   }, []);
 
-  const handleConnect = async () => {
+  updateWalletInfoRef.current = updateWalletInfo;
+
+  const handleConnect = useCallback(async () => {
     setError(null);
+    setDisconnectedFlag(false);
+    
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        const accounts: string[] = await window.ethereum.request({ method: "eth_accounts" });
+        if (accounts.length > 0) {
+          const result = await connectWallet();
+          if (result.provider && result.signer && result.address && result.chainId) {
+            setWalletState({
+              isConnected: true,
+              address: result.address,
+              chainId: result.chainId,
+              balance: null,
+              tokenBalance: null,
+              tokenSymbol: null,
+              tokenName: null,
+            });
+            setStoredAddress(result.address);
+            await updateWalletInfo(result.provider, result.address, result.chainId);
+          }
+          return;
+        }
+      } catch {
+        // Ignore errors, will fallback to full connectWallet flow
+      }
+    }
+    
     const result = await connectWallet();
 
     if (result.error) {
@@ -61,12 +136,12 @@ function App() {
         tokenSymbol: null,
         tokenName: null,
       });
-
+      setStoredAddress(result.address);
       await updateWalletInfo(result.provider, result.address, result.chainId);
     }
-  };
+  }, [updateWalletInfo]);
 
-  const handleDisconnect = () => {
+  const handleDisconnect = useCallback(() => {
     setWalletState({
       isConnected: false,
       address: null,
@@ -76,10 +151,14 @@ function App() {
       tokenSymbol: null,
       tokenName: null,
     });
+    setStoredAddress(null);
+    setDisconnectedFlag(true);
     setError(null);
-  };
+  }, []);
 
-  const handleTransfer = async (toAddress: string, amount: string) => {
+  handleDisconnectRef.current = handleDisconnect;
+
+  const handleTransfer = useCallback(async (toAddress: string, amount: string) => {
     if (!walletState.isConnected) {
       return { success: false, error: "Wallet not connected" };
     }
@@ -92,53 +171,95 @@ function App() {
     const transferResult = await transferTokens(result.signer, toAddress, amount);
 
     if (transferResult.success) {
-      // Refresh balances after successful transfer
-      if (result.provider) {
-        await updateWalletInfo(result.provider, walletState.address!, walletState.chainId!);
+      if (result.provider && walletState.address && walletState.chainId) {
+        await updateWalletInfo(result.provider, walletState.address, walletState.chainId);
       }
     }
 
     return transferResult;
-  };
+  }, [walletState.isConnected, walletState.address, walletState.chainId, updateWalletInfo]);
 
-  const handleSwitchNetwork = async (chainId: number) => {
+  const handleSwitchNetwork = useCallback(async (chainId: number) => {
     const result = await switchNetwork(chainId);
     if (!result.success) {
       setError(result.error || "Failed to switch network");
     }
-  };
+  }, []);
 
-  // Listen for account/chain changes
   useEffect(() => {
-    if (typeof window.ethereum !== "undefined") {
-      const handleAccountsChanged = (accounts: string[]) => {
+    const tryAutoConnect = async () => {
+      if (typeof window.ethereum === "undefined") return;
+      if (wasExplicitlyDisconnected()) return;
+      
+      try {
+        let accounts: string[] = await window.ethereum.request({ method: "eth_accounts" });
+        
         if (accounts.length === 0) {
-          handleDisconnect();
-        } else if (walletState.isConnected && accounts[0] !== walletState.address) {
-          setWalletState((prev) => ({ ...prev, address: accounts[0] }));
+          const storedAddr = getStoredAddress();
+          if (storedAddr) {
+            accounts = [storedAddr];
+          } else {
+            return;
+          }
         }
-      };
 
-      const handleChainChanged = (newChainId: string) => {
-        const chainIdNum = parseInt(newChainId, 16);
-        setWalletState((prev) => ({ ...prev, chainId: chainIdNum }));
-      };
-
-      window.ethereum.on("accountsChanged", handleAccountsChanged as (...args: unknown[]) => void);
-      window.ethereum.on("chainChanged", handleChainChanged as (...args: unknown[]) => void);
-
-      return () => {
-        if (window.ethereum) {
-          window.ethereum.removeListener("accountsChanged", handleAccountsChanged as (...args: unknown[]) => void);
-          window.ethereum.removeListener("chainChanged", handleChainChanged as (...args: unknown[]) => void);
+        const result = await connectWallet();
+        if (result.provider && result.signer && result.address && result.chainId) {
+          setWalletState({
+            isConnected: true,
+            address: result.address,
+            chainId: result.chainId,
+            balance: null,
+            tokenBalance: null,
+            tokenSymbol: null,
+            tokenName: null,
+          });
+          setStoredAddress(result.address);
+          const updateFn = updateWalletInfoRef.current;
+          if (updateFn) {
+            await updateFn(result.provider, result.address, result.chainId);
+          }
         }
-      };
+      } catch {
+        // Ignore auto-connect errors
+      }
+    };
+
+    tryAutoConnect();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window.ethereum === "undefined") {
+      return;
     }
+
+    const handleAccountsChanged = (accounts: string[]) => {
+      const disconnectFn = handleDisconnectRef.current;
+      if (accounts.length === 0) {
+        if (disconnectFn) disconnectFn();
+      } else if (walletState.isConnected && accounts[0] !== walletState.address) {
+        setWalletState((prev) => ({ ...prev, address: accounts[0] }));
+      }
+    };
+
+    const handleChainChanged = (newChainId: string) => {
+      const chainIdNum = parseInt(newChainId, 16);
+      setWalletState((prev) => ({ ...prev, chainId: chainIdNum }));
+    };
+
+    window.ethereum.on("accountsChanged", handleAccountsChanged as (...args: unknown[]) => void);
+    window.ethereum.on("chainChanged", handleChainChanged as (...args: unknown[]) => void);
+
+    return () => {
+      if (window.ethereum) {
+        window.ethereum.removeListener("accountsChanged", handleAccountsChanged as (...args: unknown[]) => void);
+        window.ethereum.removeListener("chainChanged", handleChainChanged as (...args: unknown[]) => void);
+      }
+    };
   }, [walletState.isConnected, walletState.address]);
 
   return (
     <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
@@ -163,7 +284,6 @@ function App() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
           <div className="mb-6 p-4 bg-red-100 border border-red-300 text-red-800 rounded-lg flex items-center justify-between">
@@ -199,15 +319,12 @@ function App() {
               Connect Wallet
             </button>
           </div>
-        ) : (
+) : (
           <div className="space-y-6">
-            {/* Network Status */}
             <NetworkDetector
               chainId={walletState.chainId}
               onSwitchNetwork={handleSwitchNetwork}
             />
-
-            {/* Balance Display */}
             <BalanceDisplay
               ethBalance={walletState.balance}
               tokenBalance={walletState.tokenBalance}
@@ -215,8 +332,6 @@ function App() {
               tokenName={walletState.tokenName}
               isLoading={isLoading}
             />
-
-            {/* Transfer Form */}
             <TransferForm
               onTransfer={handleTransfer}
               tokenSymbol={walletState.tokenSymbol}
@@ -224,13 +339,6 @@ function App() {
           </div>
         )}
       </main>
-
-      {/* Footer */}
-      <footer className="mt-auto py-6 border-t border-gray-200 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-500">
-          <p>ERC20 Token Dashboard • Built with React, Ethers.js & Tailwind CSS</p>
-        </div>
-      </footer>
     </div>
   );
 }
