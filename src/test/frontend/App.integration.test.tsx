@@ -12,6 +12,7 @@ vi.mock('@/frontend/utils/wallet', () => ({
   getTokenInfo: vi.fn(),
   transferTokens: vi.fn(),
   switchNetwork: vi.fn(),
+  watchTokenTransfers: vi.fn().mockResolvedValue(vi.fn()),
 }));
 
 describe('App Integration Tests', () => {

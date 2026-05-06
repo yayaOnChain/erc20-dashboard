@@ -1,4 +1,4 @@
-import { BrowserProvider, Contract, formatEther, formatUnits, parseUnits } from "ethers";
+import { BrowserProvider, Contract, formatEther, formatUnits, parseUnits, type ContractRunner } from "ethers";
 import type { Signer } from "ethers";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "./contractInfo";
 
@@ -146,4 +146,35 @@ export const switchNetwork = async (chainId: number): Promise<{ success: boolean
     }
     return { success: false, error: err.message || "Failed to switch network" };
   }
+};
+
+export const watchTokenTransfers = async (
+  runner: ContractRunner,
+  address: string,
+  onTransferReceived: (from: string, to: string, amount: bigint) => void
+): Promise<() => void> => {
+  if (!CONTRACT_ADDRESS) {
+    throw new Error("Contract address not configured");
+  }
+
+  const contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, runner);
+  
+  const filterTo = contract.filters.Transfer(null, address);
+  const filterFrom = contract.filters.Transfer(address, null);
+
+  const handleTo = (from: string, to: string, amount: bigint) => {
+    onTransferReceived(from, to, amount);
+  };
+
+  const handleFrom = (from: string, to: string, amount: bigint) => {
+    onTransferReceived(from, to, amount);
+  };
+
+  contract.on(filterTo, handleTo);
+  contract.on(filterFrom, handleFrom);
+
+  return () => {
+    contract.off(filterTo, handleTo);
+    contract.off(filterFrom, handleFrom);
+  };
 };

@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ConnectWallet, BalanceDisplay, TransferForm, NetworkDetector } from "./frontend/components";
-import { connectWallet, getTokenBalance, getETHBalance, getTokenInfo, transferTokens, switchNetwork } from "./frontend/utils/wallet";
+import { connectWallet, getTokenBalance, getETHBalance, getTokenInfo, transferTokens, switchNetwork, watchTokenTransfers } from "./frontend/utils/wallet";
 import type { WalletState } from "./frontend/utils/wallet";
-import type { BrowserProvider } from "ethers";
+import { ethers, type BrowserProvider } from "ethers";
 
 function App() {
   const [walletState, setWalletState] = useState<WalletState>({
@@ -233,30 +233,96 @@ function App() {
       return;
     }
 
-    const handleAccountsChanged = (accounts: string[]) => {
+    const handleAccountsChanged = async (accounts: string[]) => {
       const disconnectFn = handleDisconnectRef.current;
       if (accounts.length === 0) {
         if (disconnectFn) disconnectFn();
-      } else if (walletState.isConnected && accounts[0] !== walletState.address) {
+      } else if (accounts[0] !== walletState.address) {
         setWalletState((prev) => ({ ...prev, address: accounts[0] }));
+        if (walletState.isConnected && walletState.address) {
+          const updateFn = updateWalletInfoRef.current;
+          if (updateFn && window.ethereum) {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const chainId = await provider.getNetwork().then(n => n.chainId).catch(() => 0n);
+            await updateFn(provider, accounts[0], Number(chainId));
+          }
+        }
       }
     };
 
-    const handleChainChanged = (newChainId: string) => {
+    const handleChainChanged = async (newChainId: string) => {
       const chainIdNum = parseInt(newChainId, 16);
       setWalletState((prev) => ({ ...prev, chainId: chainIdNum }));
+      if (walletState.isConnected && walletState.address) {
+        const updateFn = updateWalletInfoRef.current;
+        if (updateFn && window.ethereum) {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          await updateFn(provider, walletState.address, chainIdNum);
+        }
+      }
+    };
+
+    const handleMessage = async () => {
+      if (walletState.isConnected && walletState.address && window.ethereum) {
+        const updateFn = updateWalletInfoRef.current;
+        if (updateFn) {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          await updateFn(provider, walletState.address, walletState.chainId || 0);
+        }
+      }
     };
 
     window.ethereum.on("accountsChanged", handleAccountsChanged as (...args: unknown[]) => void);
     window.ethereum.on("chainChanged", handleChainChanged as (...args: unknown[]) => void);
+    window.ethereum.on("message", handleMessage as (...args: unknown[]) => void);
 
     return () => {
       if (window.ethereum) {
         window.ethereum.removeListener("accountsChanged", handleAccountsChanged as (...args: unknown[]) => void);
         window.ethereum.removeListener("chainChanged", handleChainChanged as (...args: unknown[]) => void);
+        window.ethereum.removeListener("message", handleMessage as (...args: unknown[]) => void);
       }
     };
-  }, [walletState.isConnected, walletState.address]);
+  }, [walletState.isConnected, walletState.address, walletState.chainId]);
+
+  useEffect(() => {
+    if (!walletState.isConnected || !walletState.address || typeof window.ethereum === "undefined") {
+      return;
+    }
+
+    const address = walletState.address;
+    const ethereum = window.ethereum;
+
+    let isMounted = true;
+
+    const setupWatcher = async () => {
+      const provider = new ethers.BrowserProvider(ethereum);
+      const unwatch = await watchTokenTransfers(
+        provider,
+        address,
+        async () => {
+          if (isMounted && walletState.address) {
+            const updateFn = updateWalletInfoRef.current;
+            if (updateFn) {
+              const chainId = await provider.getNetwork().then(n => n.chainId).catch(() => 0n);
+              await updateFn(provider, address, Number(chainId));
+            }
+          }
+        }
+      );
+      return unwatch;
+    };
+
+    let unwatch: (() => void) | undefined;
+    setupWatcher().then(fn => {
+      unwatch = fn;
+    });
+
+    return () => {
+      isMounted = false;
+      if (unwatch) unwatch();
+    };
+  }, [walletState.isConnected, walletState.address, walletState.chainId]);
 
   return (
     <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100">
