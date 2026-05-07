@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run compile && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "compile": "npx hardhat compile",
