@@ -28,6 +28,42 @@ describe('wallet utilities', () => {
       expect(result.chainId).toBeNull();
     });
 
+    it('should redirect to MetaMask app deep link on mobile if not installed', async () => {
+      delete (window as unknown as Record<string, unknown>).ethereum;
+      
+      const originalUserAgent = navigator.userAgent;
+      const originalLocation = window.location;
+
+      // Mock userAgent to simulate mobile
+      Object.defineProperty(navigator, 'userAgent', {
+        value: 'iPhone',
+        configurable: true,
+      });
+
+      // Mock window.location
+      Object.defineProperty(window, 'location', {
+        value: { href: 'http://localhost:5173/' },
+        writable: true,
+        configurable: true,
+      });
+
+      const result = await connectWallet();
+
+      expect(result.error).toBe('Redirecting to MetaMask App...');
+      expect(window.location.href).toBe('https://metamask.app.link/dapp/localhost:5173/');
+
+      // Restore
+      Object.defineProperty(navigator, 'userAgent', {
+        value: originalUserAgent,
+        configurable: true,
+      });
+      Object.defineProperty(window, 'location', {
+        value: originalLocation,
+        writable: true,
+        configurable: true,
+      });
+    });
+
     it('should handle user rejection error properly', async () => {
       // Mock window.ethereum to reject the request
       (window as unknown as Record<string, unknown>).ethereum = {
