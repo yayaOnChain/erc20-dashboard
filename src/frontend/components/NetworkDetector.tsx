@@ -24,7 +24,7 @@ export const NetworkDetector: React.FC<NetworkDetectorProps> = ({ chainId, onSwi
   const isSupportedNetwork = chainId === 11155111 || chainId === 31337;
 
   return (
-    <div className={`p-4 rounded-lg border ${
+    <div className={`p-4 rounded-lg border mb-6 ${
       chainId === null
         ? "bg-gray-100 border-gray-300"
         : isSupportedNetwork

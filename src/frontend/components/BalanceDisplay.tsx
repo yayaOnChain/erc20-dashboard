@@ -16,7 +16,7 @@ export const BalanceDisplay: React.FC<BalanceDisplayProps> = ({
   isLoading,
 }) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
       {/* ETH Balance Card */}
       <div className="bg-linear-to-br from-blue-50 to-blue-100 p-6 rounded-xl shadow-md border border-blue-200">
         <div className="flex items-center gap-3 mb-3">
