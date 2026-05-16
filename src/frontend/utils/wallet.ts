@@ -20,6 +20,14 @@ export const connectWallet = async (): Promise<{
   error?: string;
 }> => {
   if (typeof window.ethereum === "undefined") {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      const currentUrl = window.location.href.replace(/^https?:\/\//, '');
+      window.location.href = `https://metamask.app.link/dapp/${currentUrl}`;
+      return { provider: null, signer: null, address: null, chainId: null, error: "Redirecting to MetaMask App..." };
+    }
+    
     return { provider: null, signer: null, address: null, chainId: null, error: "MetaMask not installed" };
   }
 
