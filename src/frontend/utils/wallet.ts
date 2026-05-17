@@ -12,7 +12,7 @@ export interface WalletState {
   tokenName: string | null;
 }
 
-export const connectWallet = async (): Promise<{
+export const connectWallet = async (requestPermission: boolean = true): Promise<{
   provider: BrowserProvider | null;
   signer: Signer | null;
   address: string | null;
@@ -21,18 +21,23 @@ export const connectWallet = async (): Promise<{
 }> => {
   if (typeof window.ethereum === "undefined") {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
+
     if (isMobile) {
       const currentUrl = window.location.href.replace(/^https?:\/\//, '');
       window.location.href = `https://metamask.app.link/dapp/${currentUrl}`;
       return { provider: null, signer: null, address: null, chainId: null, error: "Redirecting to MetaMask App..." };
     }
-    
+
     return { provider: null, signer: null, address: null, chainId: null, error: "MetaMask not installed" };
   }
 
   try {
     const provider = new BrowserProvider(window.ethereum);
+
+    if (requestPermission) {
+      await provider.send("wallet_requestPermissions", [{ eth_accounts: {} }]);
+    }
+
     const accounts = await provider.send("eth_requestAccounts", []);
     const signer = await provider.getSigner();
     const network = await provider.getNetwork();

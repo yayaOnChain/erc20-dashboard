@@ -19,6 +19,7 @@ function App() {
 
   const updateWalletInfoRef = useRef<(provider: BrowserProvider, address: string, chainId: number) => Promise<void>>(null!);
   const handleDisconnectRef = useRef<() => void>(null!);
+  const isConnectingRef = useRef(false);
   const STORAGE_KEY = "erc20wallet_address";
   const DISCONNECT_FLAG_KEY = "erc20wallet_disconnected";
 
@@ -34,15 +35,6 @@ function App() {
     }
   };
 
-  const getStoredAddress = (): string | null => {
-    try {
-      return localStorage.getItem(STORAGE_KEY);
-    } catch {
-      // localStorage unavailable
-      return null;
-    }
-  };
-
   const setDisconnectedFlag = (value: boolean) => {
     try {
       if (value) {
@@ -55,7 +47,7 @@ function App() {
     }
   };
 
-  const wasExplicitlyDisconnected = (): boolean => {
+  const isExplicitlyDisconnected = (): boolean => {
     try {
       return localStorage.getItem(DISCONNECT_FLAG_KEY) === "1";
     } catch {
@@ -91,53 +83,37 @@ function App() {
   updateWalletInfoRef.current = updateWalletInfo;
 
   const handleConnect = useCallback(async () => {
+    if (isConnectingRef.current) return;
+    isConnectingRef.current = true;
+
     setError(null);
     setDisconnectedFlag(false);
-    
-    if (typeof window.ethereum !== "undefined") {
-      try {
-        const accounts: string[] = await window.ethereum.request({ method: "eth_accounts" });
-        if (accounts.length > 0) {
-          const result = await connectWallet();
-          if (result.provider && result.signer && result.address && result.chainId) {
-            setWalletState({
-              isConnected: true,
-              address: result.address,
-              chainId: result.chainId,
-              balance: null,
-              tokenBalance: null,
-              tokenSymbol: null,
-              tokenName: null,
-            });
-            setStoredAddress(result.address);
-            await updateWalletInfo(result.provider, result.address, result.chainId);
-          }
-          return;
-        }
-      } catch {
-        // Ignore errors, will fallback to full connectWallet flow
+    setIsLoading(true);
+
+    try {
+      const result = await connectWallet();
+
+      if (result.error) {
+        setError(result.error);
+        return;
       }
-    }
-    
-    const result = await connectWallet();
 
-    if (result.error) {
-      setError(result.error);
-      return;
-    }
-
-    if (result.provider && result.signer && result.address && result.chainId) {
-      setWalletState({
-        isConnected: true,
-        address: result.address,
-        chainId: result.chainId,
-        balance: null,
-        tokenBalance: null,
-        tokenSymbol: null,
-        tokenName: null,
-      });
-      setStoredAddress(result.address);
-      await updateWalletInfo(result.provider, result.address, result.chainId);
+      if (result.provider && result.signer && result.address && result.chainId) {
+        setWalletState({
+          isConnected: true,
+          address: result.address,
+          chainId: result.chainId,
+          balance: null,
+          tokenBalance: null,
+          tokenSymbol: null,
+          tokenName: null,
+        });
+        setStoredAddress(result.address);
+        await updateWalletInfo(result.provider, result.address, result.chainId);
+      }
+    } finally {
+      setIsLoading(false);
+      isConnectingRef.current = false;
     }
   }, [updateWalletInfo]);
 
@@ -189,39 +165,37 @@ function App() {
   useEffect(() => {
     const tryAutoConnect = async () => {
       if (typeof window.ethereum === "undefined") return;
-      if (wasExplicitlyDisconnected()) return;
-      
-      try {
-        let accounts: string[] = await window.ethereum.request({ method: "eth_accounts" });
-        
-        if (accounts.length === 0) {
-          const storedAddr = getStoredAddress();
-          if (storedAddr) {
-            accounts = [storedAddr];
-          } else {
-            return;
-          }
-        }
+      if (isExplicitlyDisconnected()) return;
 
-        const result = await connectWallet();
-        if (result.provider && result.signer && result.address && result.chainId) {
-          setWalletState({
-            isConnected: true,
-            address: result.address,
-            chainId: result.chainId,
-            balance: null,
-            tokenBalance: null,
-            tokenSymbol: null,
-            tokenName: null,
-          });
-          setStoredAddress(result.address);
-          const updateFn = updateWalletInfoRef.current;
-          if (updateFn) {
-            await updateFn(result.provider, result.address, result.chainId);
+      try {
+        const accounts: string[] = await window.ethereum.request({ method: "eth_accounts" });
+
+        if (accounts.length > 0) {
+          // Auto-connect without popup for existing sessions
+          const result = await connectWallet(false);
+          if (result.provider && result.signer && result.address && result.chainId) {
+            setWalletState({
+              isConnected: true,
+              address: result.address,
+              chainId: result.chainId,
+              balance: null,
+              tokenBalance: null,
+              tokenSymbol: null,
+              tokenName: null,
+            });
+            setStoredAddress(result.address);
+            const updateFn = updateWalletInfoRef.current;
+            if (updateFn) {
+              await updateFn(result.provider, result.address, result.chainId);
+            }
           }
+        } else {
+          // No accounts in MetaMask, require explicit connect
+          setDisconnectedFlag(true);
         }
       } catch {
-        // Ignore auto-connect errors
+        // Ignore errors, require explicit connect
+        setDisconnectedFlag(true);
       }
     };
 
@@ -343,6 +317,7 @@ function App() {
             <ConnectWallet
               address={walletState.address}
               isConnected={walletState.isConnected}
+              isLoading={isLoading}
               onConnect={handleConnect}
               onDisconnect={handleDisconnect}
             />
@@ -380,9 +355,10 @@ function App() {
             </p>
             <button
               onClick={handleConnect}
-              className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
+              disabled={isLoading}
+              className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none disabled:cursor-not-allowed"
             >
-              Connect Wallet
+              {isLoading ? "Connecting..." : "Connect Wallet"}
             </button>
           </div>
 ) : (

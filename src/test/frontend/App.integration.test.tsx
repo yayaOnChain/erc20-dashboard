@@ -523,4 +523,112 @@ describe('App Integration Tests', () => {
 
     expect(mockConnectWallet).toHaveBeenCalled();
   });
+
+  it('should show loading state on Connect button when clicked', async () => {
+    // Make connectWallet slow to verify loading state
+    let resolveConnect: (value: {
+      provider: import('ethers').BrowserProvider;
+      signer: import('ethers').Signer;
+      address: string;
+      chainId: number;
+    }) => void = null!;
+
+    mockConnectWallet.mockImplementation(() => new Promise((resolve) => {
+      resolveConnect = () => resolve({
+        provider: {} as import('ethers').BrowserProvider,
+        signer: {} as import('ethers').Signer,
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        chainId: 31337,
+      });
+    }));
+
+    mockGetETHBalance.mockResolvedValue('1.5');
+    mockGetTokenBalance.mockResolvedValue('1000');
+    mockGetTokenInfo.mockResolvedValue({
+      symbol: 'MTK',
+      name: 'MyToken',
+      decimals: 18,
+    });
+
+    render(<App />);
+
+    const connectButtons = screen.getAllByText('Connect Wallet');
+    fireEvent.click(connectButtons[0]);
+
+    // Should show "Connecting..." text immediately after click
+    await waitFor(() => {
+      expect(screen.getAllByText('Connecting...').length).toBe(2); // Both header and main button
+    });
+
+    // Buttons should be disabled
+    const buttons = screen.getAllByRole('button', { name: /connecting/i });
+    buttons.forEach(button => {
+      expect(button).toBeDisabled();
+    });
+
+    // Resolve the connection
+    resolveConnect({
+      provider: {} as import('ethers').BrowserProvider,
+      signer: {} as import('ethers').Signer,
+      address: '0x1234567890abcdef1234567890abcdef12345678',
+      chainId: 31337,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('1.5000 ETH')).toBeInTheDocument();
+    });
+  });
+
+  it('should call connectWallet with false for auto-connect and true for manual connect', async () => {
+    mockConnectWallet.mockResolvedValue({
+      provider: {} as import('ethers').BrowserProvider,
+      signer: {} as import('ethers').Signer,
+      address: '0x1234567890abcdef1234567890abcdef12345678',
+      chainId: 31337,
+    });
+
+    mockGetETHBalance.mockResolvedValue('1.5');
+    mockGetTokenBalance.mockResolvedValue('1000');
+    mockGetTokenInfo.mockResolvedValue({
+      symbol: 'MTK',
+      name: 'MyToken',
+      decimals: 18,
+    });
+
+    // Clear and setup for auto-connect test (no disconnect flag, has accounts in MetaMask)
+    vi.clearAllMocks();
+    localStorage.clear();
+
+    const mockEth = window.ethereum as unknown as { request: ReturnType<typeof vi.fn> };
+    mockEth.request = vi.fn().mockResolvedValue(['0x1234567890abcdef1234567890abcdef12345678']);
+
+    render(<App />);
+
+    // Auto-connect should be called with false (no popup)
+    await waitFor(() => {
+      expect(mockConnectWallet).toHaveBeenCalledWith(false);
+    });
+
+    // Disconnect first
+    const disconnectButton = screen.getByRole('button', { name: /disconnect/i });
+    fireEvent.click(disconnectButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Connect Your Wallet')).toBeInTheDocument();
+    });
+
+    vi.clearAllMocks();
+
+    // Now click Connect button - should be called with no argument (defaults to true = with popup)
+    const connectButtons = screen.getAllByText('Connect Wallet');
+    fireEvent.click(connectButtons[0]);
+
+    await waitFor(() => {
+      // connectWallet() should be called (without false argument)
+      expect(mockConnectWallet).toHaveBeenCalled();
+      // The first call should NOT have false as the argument (should be default true or undefined)
+      const callArgs = mockConnectWallet.mock.calls[0];
+      expect(callArgs[0]).not.toBe(false);
+    });
+  });
 });

@@ -3,6 +3,7 @@ import React from "react";
 interface ConnectWalletProps {
   address: string | null;
   isConnected: boolean;
+  isLoading?: boolean;
   onConnect: () => void;
   onDisconnect: () => void;
 }
@@ -10,6 +11,7 @@ interface ConnectWalletProps {
 export const ConnectWallet: React.FC<ConnectWalletProps> = ({
   address,
   isConnected,
+  isLoading = false,
   onConnect,
   onDisconnect,
 }) => {
@@ -38,9 +40,10 @@ export const ConnectWallet: React.FC<ConnectWalletProps> = ({
       ) : (
         <button
           onClick={onConnect}
-          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 font-medium shadow-md hover:shadow-lg"
+          disabled={isLoading}
+          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors duration-200 font-medium shadow-md hover:shadow-lg disabled:cursor-not-allowed"
         >
-          Connect Wallet
+          {isLoading ? "Connecting..." : "Connect Wallet"}
         </button>
       )}
     </div>
