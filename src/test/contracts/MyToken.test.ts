@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { MyToken, MyToken__factory } from "../typechain-types";
+import { MyToken, MyToken__factory } from "@/typechain-types";
 import hre from "hardhat";
 
 describe("MyToken", function () {
