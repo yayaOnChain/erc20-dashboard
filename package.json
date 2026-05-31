@@ -13,6 +13,7 @@
     "test:frontend": "vitest run",
     "test:frontend:watch": "vitest",
     "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
     "deploy:local": "npx hardhat run src/scripts/deploy.ts --network localhost",
     "deploy:sepolia": "npx hardhat run src/scripts/deploy.ts --network sepolia",
     "node": "npx hardhat node"
@@ -41,6 +42,7 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
+    "@vitest/coverage-v8": "^4.1.1",
     "autoprefixer": "^10.4.22",
     "chai": "^4.5.0",
     "dotenv": "^17.3.1",
