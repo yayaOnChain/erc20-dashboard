@@ -117,7 +117,17 @@ function App() {
     }
   }, [updateWalletInfo]);
 
-  const handleDisconnect = useCallback(() => {
+  const handleDisconnect = useCallback(async () => {
+    try {
+      if (typeof window.ethereum !== "undefined") {
+        await window.ethereum.request({
+          method: "wallet_revokePermissions",
+          params: [{ eth_accounts: {} }],
+        });
+      }
+    } catch {
+      // MetaMask may not support revokePermissions; proceed with local disconnect
+    }
     setWalletState({
       isConnected: false,
       address: null,

@@ -271,6 +271,13 @@ describe('App Integration Tests', () => {
     fireEvent.click(disconnectButton);
 
     await waitFor(() => {
+      expect(mockEthereum.request).toHaveBeenCalledWith({
+        method: 'wallet_revokePermissions',
+        params: [{ eth_accounts: {} }],
+      });
+    });
+
+    await waitFor(() => {
       expect(screen.getByText('Connect Your Wallet')).toBeInTheDocument();
       expect(screen.queryByText('ETH Balance')).not.toBeInTheDocument();
       expect(screen.queryByText('Transfer Tokens')).not.toBeInTheDocument();
