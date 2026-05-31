@@ -145,10 +145,6 @@ function App() {
   handleDisconnectRef.current = handleDisconnect;
 
   const handleTransfer = useCallback(async (toAddress: string, amount: string) => {
-    if (!walletState.isConnected) {
-      return { success: false, error: "Wallet not connected" };
-    }
-
     const result = await connectWallet();
     if (result.error || !result.signer) {
       return { success: false, error: result.error || "Failed to connect wallet" };
@@ -163,7 +159,7 @@ function App() {
     }
 
     return transferResult;
-  }, [walletState.isConnected, walletState.address, walletState.chainId, updateWalletInfo]);
+  }, [walletState.address, walletState.chainId, updateWalletInfo]);
 
   const handleSwitchNetwork = useCallback(async (chainId: number) => {
     const result = await switchNetwork(chainId);
@@ -194,10 +190,7 @@ function App() {
               tokenName: null,
             });
             setStoredAddress(result.address);
-            const updateFn = updateWalletInfoRef.current;
-            if (updateFn) {
-              await updateFn(result.provider, result.address, result.chainId);
-            }
+            await updateWalletInfoRef.current(result.provider, result.address, result.chainId);
           }
         } else {
           // No accounts in MetaMask, require explicit connect
@@ -218,17 +211,15 @@ function App() {
     }
 
     const handleAccountsChanged = async (accounts: string[]) => {
-      const disconnectFn = handleDisconnectRef.current;
       if (accounts.length === 0) {
-        if (disconnectFn) disconnectFn();
+        handleDisconnectRef.current();
       } else if (accounts[0] !== walletState.address) {
         setWalletState((prev) => ({ ...prev, address: accounts[0] }));
-        if (walletState.isConnected && walletState.address) {
-          const updateFn = updateWalletInfoRef.current;
-          if (updateFn && window.ethereum) {
+        if (walletState.isConnected) {
+          if (window.ethereum) {
             const provider = new ethers.BrowserProvider(window.ethereum);
             const chainId = await provider.getNetwork().then(n => n.chainId).catch(() => 0n);
-            await updateFn(provider, accounts[0], Number(chainId));
+            await updateWalletInfoRef.current(provider, accounts[0], Number(chainId));
           }
         }
       }
@@ -237,22 +228,18 @@ function App() {
     const handleChainChanged = async (newChainId: string) => {
       const chainIdNum = parseInt(newChainId, 16);
       setWalletState((prev) => ({ ...prev, chainId: chainIdNum }));
-      if (walletState.isConnected && walletState.address) {
-        const updateFn = updateWalletInfoRef.current;
-        if (updateFn && window.ethereum) {
+      if (walletState.isConnected) {
+        if (window.ethereum) {
           const provider = new ethers.BrowserProvider(window.ethereum);
-          await updateFn(provider, walletState.address, chainIdNum);
+          await updateWalletInfoRef.current(provider, walletState.address!, chainIdNum);
         }
       }
     };
 
     const handleMessage = async () => {
-      if (walletState.isConnected && walletState.address && window.ethereum) {
-        const updateFn = updateWalletInfoRef.current;
-        if (updateFn) {
-          const provider = new ethers.BrowserProvider(window.ethereum);
-          await updateFn(provider, walletState.address, walletState.chainId || 0);
-        }
+      if (walletState.isConnected && window.ethereum) {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        await updateWalletInfoRef.current(provider, walletState.address!, walletState.chainId!);
       }
     };
 
@@ -270,11 +257,11 @@ function App() {
   }, [walletState.isConnected, walletState.address, walletState.chainId]);
 
   useEffect(() => {
-    if (!walletState.isConnected || !walletState.address || typeof window.ethereum === "undefined") {
+    if (!walletState.isConnected || typeof window.ethereum === "undefined") {
       return;
     }
 
-    const address = walletState.address;
+    const address = walletState.address!;
     const ethereum = window.ethereum;
 
     let isMounted = true;
@@ -285,12 +272,9 @@ function App() {
         provider,
         address,
         async () => {
-          if (isMounted && walletState.address) {
-            const updateFn = updateWalletInfoRef.current;
-            if (updateFn) {
-              const chainId = await provider.getNetwork().then(n => n.chainId).catch(() => 0n);
-              await updateFn(provider, address, Number(chainId));
-            }
+          if (isMounted) {
+            const chainId = await provider.getNetwork().then(n => n.chainId).catch(() => 0n);
+            await updateWalletInfoRef.current(provider, address, Number(chainId));
           }
         }
       );

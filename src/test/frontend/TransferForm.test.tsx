@@ -231,4 +231,19 @@ describe('TransferForm', () => {
     expect(toInput).toHaveAttribute('placeholder', '0x...');
     expect(amountInput).toHaveAttribute('placeholder', '0.00');
   });
+
+  it('should show generic error when onTransfer returns failure without error message', async () => {
+    const user = userEvent.setup();
+    mockOnTransfer.mockResolvedValue({ success: false });
+
+    render(<TransferForm {...mockProps} />);
+
+    await user.type(screen.getByLabelText(/recipient address/i), '0x1234567890abcdef1234567890abcdef12345678');
+    await user.type(screen.getByLabelText(/amount/i), '100');
+    await user.click(screen.getByRole('button', { name: /transfer/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Error: Transfer failed')).toBeInTheDocument();
+    });
+  });
 });

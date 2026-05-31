@@ -1,4 +1,5 @@
 import { defineConfig, loadEnv } from 'vite'
+import { configDefaults } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
@@ -27,6 +28,12 @@ export default defineConfig(({ mode }) => {
       css: true,
       include: ['src/test/frontend/**/*'],
       exclude: ['**/node_modules/**', '**/token.test.ts'],
+      coverage: {
+        exclude: [
+          ...(configDefaults.coverage.exclude ?? []),
+          'src/frontend/components/index.ts',
+        ],
+      },
     },
   }
 })
