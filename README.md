@@ -6,7 +6,7 @@ A complete, production-ready ERC20 token implementation with a modern React dash
 ![Solidity](https://img.shields.io/badge/Solidity-0.8.20-blue)
 ![React](https://img.shields.io/badge/React-19.2.4-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)
-![Tests](https://img.shields.io/badge/Tests-61%20passing-green)
+![Tests](https://img.shields.io/badge/Tests-150%20passing-green)
 
 ---
 
@@ -46,8 +46,8 @@ A complete, production-ready ERC20 token implementation with a modern React dash
 - ✅ **Auto-refresh** - Balances update after transactions
 - ✅ **Modern UI** - Clean, responsive design with Tailwind CSS
 - ✅ **Type Safe** - 100% TypeScript with no `any` types
-- ✅ **Component Tests** - 35 unit tests for all components
-- ✅ **Integration Tests** - 10 end-to-end flow tests
+- ✅ **Component Tests** - Comprehensive unit tests for all components
+- ✅ **Integration Tests** - Full end-to-end flow tests
 
 ---
 
@@ -89,14 +89,19 @@ erc20-dashboard
 │   ├── scripts/
 │   │   └── deploy.ts                # Deployment script
 │   ├── test/
-│   │   ├── token.test.ts            # Smart contract tests (26 tests)
+│   │   ├── App.integration.test.tsx       # End-to-end integration tests
+│   │   ├── components.test.tsx            # Component barrel export tests
+│   │   ├── contracts/
+│   │   │   └── MyToken.test.ts            # Smart contract tests (26 tests)
 │   │   └── frontend/
-│   │       ├── ConnectWallet.test.tsx
-│   │       ├── BalanceDisplay.test.tsx
-│   │       ├── NetworkDetector.test.tsx
-│   │       ├── TransferForm.test.tsx
-│   │       ├── wallet.test.ts
-│   │       └── App.integration.test.tsx
+│   │       ├── components/
+│   │       │   ├── ConnectWallet.test.tsx
+│   │       │   ├── BalanceDisplay.test.tsx
+│   │       │   ├── NetworkDetector.test.tsx
+│   │       │   └── TransferForm.test.tsx
+│   │       └── utils/
+│   │           ├── wallet.test.ts
+│   │           └── wallet-contract.test.ts
 │   ├── typechain-types/             # Auto-generated TypeChain types
 │   ├── artifacts/                   # Compiled contract artifacts
 │   ├── App.tsx                      # Main application component
@@ -182,7 +187,7 @@ erc20-dashboard
 
 ## 🧪 Testing
 
-This project has a comprehensive test suite with **61 tests** covering both smart contracts and frontend components.
+This project has a comprehensive test suite with **150 tests** covering both smart contracts and frontend components.
 
 ### Run All Tests
 
@@ -213,19 +218,20 @@ npm run test:frontend:watch
 | Test Suite            | Tests  | Status              |
 | --------------------- | ------ | ------------------- |
 | **Smart Contract**    | 26     | ✅ Passing          |
-| **Component Tests**   | 35     | ✅ Passing          |
-| **Integration Tests** | 10     | ✅ Passing          |
-| **Total**             | **61** | ✅ **100% Passing** |
+| **Frontend Tests**    | 124    | ✅ Passing          |
+| **Total**             | **150**| ✅ **100% Passing** |
 
 ### Test Files
 
-- `src/test/token.test.ts` - Smart contract unit tests
-- `src/test/frontend/ConnectWallet.test.tsx` - ConnectWallet component tests
-- `src/test/frontend/BalanceDisplay.test.tsx` - BalanceDisplay component tests
-- `src/test/frontend/NetworkDetector.test.tsx` - NetworkDetector component tests
-- `src/test/frontend/TransferForm.test.tsx` - TransferForm component tests
-- `src/test/frontend/wallet.test.ts` - Wallet utility function tests
-- `src/test/frontend/App.integration.test.tsx` - End-to-end integration tests
+- `src/test/contracts/MyToken.test.ts` - Smart contract unit tests (26 tests)
+- `src/test/App.integration.test.tsx` - End-to-end integration tests
+- `src/test/components.test.tsx` - Component barrel export tests
+- `src/test/frontend/components/ConnectWallet.test.tsx` - ConnectWallet component tests
+- `src/test/frontend/components/BalanceDisplay.test.tsx` - BalanceDisplay component tests
+- `src/test/frontend/components/NetworkDetector.test.tsx` - NetworkDetector component tests
+- `src/test/frontend/components/TransferForm.test.tsx` - TransferForm component tests
+- `src/test/frontend/utils/wallet.test.ts` - Wallet utility function tests
+- `src/test/frontend/utils/wallet-contract.test.ts` - Wallet contract interaction tests
 
 ---
 
@@ -275,7 +281,7 @@ ETHERSCAN_API_KEY=your_etherscan_api_key_here
    npm run deploy:sepolia
    ```
 
-4. **Update `contractInfo.ts`** with the deployed contract address
+4. **Update `.env`** with the deployed contract address (`VITE_CONTRACT_ADDRESS`)
 
 ---
 
@@ -297,6 +303,9 @@ ETHERSCAN_API_KEY=your_etherscan_api_key_here
 | ---------------------------- | --------------------------------- | ---------- |
 | `balanceOf(address)`         | Get token balance for an address  | Public     |
 | `transfer(address, uint256)` | Transfer tokens to an address     | Public     |
+| `transferFrom(address, address, uint256)` | Transfer tokens on behalf of an address | Public |
+| `approve(address, uint256)`  | Approve spender to spend tokens   | Public     |
+| `allowance(address, address)`| Check token allowance             | Public     |
 | `mint(uint256)`              | Mint new tokens                   | Owner Only |
 | `burn(uint256)`              | Burn tokens from sender's balance | Public     |
 | `totalSupply()`              | Get total token supply            | Public     |
@@ -386,7 +395,7 @@ This project maintains high code quality standards:
 
 - ✅ **TypeScript** - Full type safety with no `any` types
 - ✅ **ESLint** - Code linting and style enforcement
-- ✅ **Tests** - Comprehensive test coverage (61 tests)
+- ✅ **Tests** - Comprehensive test coverage (150 tests)
 - ✅ **TypeChain** - Auto-generated type definitions for contracts
 
 ---
