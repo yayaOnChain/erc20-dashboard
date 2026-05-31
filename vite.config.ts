@@ -26,8 +26,8 @@ export default defineConfig(({ mode }) => {
       globals: true,
       environment: 'jsdom',
       css: true,
-      include: ['src/test/frontend/**/*'],
-      exclude: ['**/node_modules/**', '**/token.test.ts'],
+      include: ['src/test/**/*'],
+      exclude: ['**/node_modules/**', 'src/test/contracts/**', '**/.DS_Store'],
       coverage: {
         exclude: [
           ...(configDefaults.coverage.exclude ?? []),

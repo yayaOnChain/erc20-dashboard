@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "compile": "npx hardhat compile",
     "test": "npm run test:contract && npm run test:frontend",
-    "test:contract": "npx hardhat test src/test/token.test.ts",
+    "test:contract": "npx hardhat test src/test/contracts/MyToken.test.ts",
     "test:frontend": "vitest run",
     "test:frontend:watch": "vitest",
     "test:ui": "vitest --ui",
